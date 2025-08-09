@@ -24,6 +24,10 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
+    password: {
+      type: String,
+      required: [true, "Password iS required"],
+    },
     avatar: {
       type: String,
       required: true,
@@ -37,11 +41,8 @@ const userSchema = new Schema(
         ref: "Video",
       },
     ],
-    password: {
-      type: String,
-      required: [true, "Password iS required"],
-    },
-    refreshTokens: {
+
+    refreshToken: {
       type: String,
     },
   },
@@ -56,10 +57,12 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  const compareresulit =  await bcrypt.compare(password, this.password);
+  console.log("compareresulit:==",!!compareresulit);
+  return compareresulit
 };
 
-userSchema.methods.generateAccessToken = function (password) {
+userSchema.methods.generateaccessToken = function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -73,15 +76,15 @@ userSchema.methods.generateAccessToken = function (password) {
     }
   );
 };
-userSchema.methods.generateRefreshToken = function(password){
-     return jwt.sign(
+userSchema.methods.generaterefreshToken = function () {
+  return jwt.sign(
     {
-      _id: this._id
+      _id: this._id,
     },
     process.env.REFERSH_TOKEN_SECRET,
     {
       expiresIn: process.env.REFERSH_TOKEN_EXPIRY,
     }
   );
-}
-export const User = mongoose.connect("User", userSchema);
+};
+export const User = mongoose.model("User", userSchema);

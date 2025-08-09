@@ -132,7 +132,7 @@ const logOutUser = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $unset: {
-        refreshToken: undefined,
+        refreshToken: 1,
       },
     },
     {
@@ -151,7 +151,7 @@ const logOutUser = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  const incomingRefreshToken = req.body.refreshToken;
   if (!incomingRefreshToken) {
     throw new ApiError(401, "unauthorizd RefreshToken");
   }
@@ -187,9 +187,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-const changecurrentPassword = asyncHandler(async (req, rest) => {
+const changecurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   // pov
+  if(oldPassword == newPassword) return new ApiError(401, "Bot Passwaord is same not allowed");
   const user = await User.findById(req.user?._id);
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
   if (!isPasswordCorrect) {
@@ -296,6 +297,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         foreignField: "channel",
         as: "subscribers",
       },
+    },
+    {
       $lookup: {
         from: "subscription",
         localField: "_id",
@@ -306,10 +309,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     {
       $addFields: {
         subscriptionCount: {
-          $size: "subscribers",
+          $size: "$subscribers",
         },
         channelSubscribeToCount: {
-          $size: "subscribersTo",
+          $size: "$subscribersTo",
         },
         isSubscribed: {
           $cond: {
@@ -348,7 +351,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.res._id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
@@ -386,7 +389,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       },
     },
   ]);
-
+console.log(user[0])
   return res
     .status(200)
     .json(
